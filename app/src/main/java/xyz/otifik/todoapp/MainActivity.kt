@@ -34,9 +34,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavOptions
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 
 
@@ -48,7 +51,7 @@ class MainActivity : ComponentActivity() {
             //NavController导航
             val navController = rememberNavController()
 
-            //底部导航栏的item
+            //底部导航栏的item,设置label和icon
             val items = listOf(
                 BottomNavItem(Screen.Todo.title, ImageVector.vectorResource(R.drawable.todo_icon)),
                 BottomNavItem(
@@ -94,7 +97,7 @@ class MainActivity : ComponentActivity() {
                                     content = {
                                         Icon(
                                             Icons.Filled.Add,
-                                            contentDescription = "ToDO"
+                                            contentDescription = "Todo"
                                         )
                                     },
                                     shape = RoundedCornerShape(50.dp),
@@ -122,7 +125,11 @@ class MainActivity : ComponentActivity() {
                                             Screen.Tomato.title -> Screen.Tomato
                                             else -> selectedItem
                                         }
-                                        navController.navigate(item.title)
+
+                                        navController.navigate(item.title, navOptions {
+                                            launchSingleTop = true
+
+                                        })
                                     }
                                 )
                             }
