@@ -1,66 +1,46 @@
 package xyz.otifik.todoapp
 
-import android.content.BroadcastReceiver
-import android.content.ContentProvider
-import android.content.ContentResolver
-import android.content.ContentValues
-import android.content.Context
-import android.content.Intent
-import android.content.UriMatcher
-import android.database.Cursor
-import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Row
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Scaffold
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
-import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
+import androidx.navigation.NavOptions
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import androidx.navigation.navOptions
+import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 
 
 class MainActivity : ComponentActivity() {
@@ -68,8 +48,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
 
+            //NavController导航
             val navController = rememberNavController()
 
+            //底部导航栏的item,设置label和icon
             val items = listOf(
                 BottomNavItem(Screen.Todo.title, ImageVector.vectorResource(R.drawable.todo_icon)),
                 BottomNavItem(
@@ -82,39 +64,52 @@ class MainActivity : ComponentActivity() {
                 ),
             )
 
-            var selectedItem: Screen by remember { mutableStateOf(Screen.Inspiration) }
+            var selectedItem: Screen by remember { mutableStateOf(Screen.Todo) }
 
             ToDoAppTheme {
                 // A surface container using the 'background' color from the theme
                 Scaffold(
                     floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = {
-                                when (selectedItem.title) {
-                                    Screen.Inspiration.title -> {
-                                        /*TODO*/
-                                    }
 
-                                    Screen.Todo.title -> {
-                                        /*TODO*/
-                                    }
+                        //FloatingActionButton 隐藏动画
+                        AnimatedVisibility(
+                            visible = selectedItem.title == Screen.Todo.title || selectedItem.title == Screen.Inspiration.title,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                            modifier = Modifier
+                                .height(70.dp)
+                                .width(70.dp)
+                        ) {
 
-                                    Screen.Tomato.title -> {
-                                        /*TODO*/
-                                    }
-                                }
-                            },
-                            content = {
-                                Icon(
-                                    Icons.Filled.Add,
-                                    contentDescription = "ToDO"
+                            //Box包裹FloatingActionButton 使其阴影不会被布局边界切掉
+                            Box(
+                                modifier = Modifier
+                                    .height(56.dp)
+                                    .width(56.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                FloatingActionButton(
+                                    onClick = {
+                                        when (selectedItem.title) {
+
+                                        }
+                                    },
+                                    content = {
+                                        Icon(
+                                            Icons.Filled.Add,
+                                            contentDescription = "Todo"
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(50.dp),
+                                    elevation = FloatingActionButtonDefaults.elevation(3.dp)
                                 )
-                            },
-                            shape = RoundedCornerShape(50.dp)
-                        )
+                            }
+
+
+                        }
+
                     },
                     bottomBar = {
-
                         BottomNavigation(
                             backgroundColor = Color.White
                         ) {
@@ -130,10 +125,19 @@ class MainActivity : ComponentActivity() {
                                             Screen.Tomato.title -> Screen.Tomato
                                             else -> selectedItem
                                         }
-                                        navController.navigate(item.title)
+
+                                        navController.navigate(item.title, navOptions {
+                                            launchSingleTop = true
+
+                                        })
                                     }
                                 )
                             }
+                        }
+                    },
+                    topBar = {
+                        TopAppBar(backgroundColor = Color.White) {
+                            Text(text = selectedItem.title)
                         }
                     }
                 ) {
@@ -143,7 +147,10 @@ class MainActivity : ComponentActivity() {
                             .padding(bottom = it.calculateBottomPadding()),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        NavHost(navController = navController, startDestination = Screen.Todo.title) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.Todo.title
+                        ) {
                             composable(Screen.Todo.title) {
                                 ToDoContent()
                             }
@@ -157,7 +164,6 @@ class MainActivity : ComponentActivity() {
 
                     }
                 }
-
             }
         }
     }
