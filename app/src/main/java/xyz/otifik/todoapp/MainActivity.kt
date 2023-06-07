@@ -1,5 +1,6 @@
 package xyz.otifik.todoapp
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,17 +36,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.datastore.core.DataStore
+import androidx.datastore.dataStore
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.collections.immutable.PersistentList
 import xyz.otifik.todoapp.compose.InspirationContent
 import xyz.otifik.todoapp.compose.ToDoContent
 import xyz.otifik.todoapp.compose.TomatoContent
+import xyz.otifik.todoapp.model.Todo
+import xyz.otifik.todoapp.repository.serializer.TodoAppDataSerializer
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
 
+val Context.datastore by dataStore("todo-app-data.json",TodoAppDataSerializer)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -173,6 +180,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun setTodoAppData(list: MutableList<Todo>){
+        datastore.updateData {
+            it.copy(
+                todoListData = list
+            )
         }
     }
 }

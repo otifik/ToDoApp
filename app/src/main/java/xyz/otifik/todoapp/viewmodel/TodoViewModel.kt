@@ -6,6 +6,7 @@ import xyz.otifik.todoapp.model.Todo
 
 class TodoViewModel: ViewModel() {
 
-    val todoList: MutableStateFlow<List<Todo>> = MutableStateFlow(emptyList())
+    val todoList: MutableStateFlow<MutableList<Todo>> = MutableStateFlow(mutableListOf())
+
 
 }
