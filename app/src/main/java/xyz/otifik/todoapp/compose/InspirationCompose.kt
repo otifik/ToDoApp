@@ -1,4 +1,4 @@
-package xyz.otifik.todoapp
+package xyz.otifik.todoapp.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column

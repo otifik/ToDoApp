@@ -3,6 +3,7 @@ package xyz.otifik.todoapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,16 +35,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavOptions
-import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
+import dagger.hilt.android.AndroidEntryPoint
+import xyz.otifik.todoapp.compose.InspirationContent
+import xyz.otifik.todoapp.compose.ToDoContent
+import xyz.otifik.todoapp.compose.TomatoContent
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
+import xyz.otifik.todoapp.viewmodel.TodoViewModel
 
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val todoViewModel: TodoViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
