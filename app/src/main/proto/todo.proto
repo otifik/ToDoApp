@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option java_package = "xyz.otifik.todoapp";
-option java_multiple_files = true;
-
-message Settings {
-  int64 timeStamp = 1;
-  string todoContent = 2;
-}
