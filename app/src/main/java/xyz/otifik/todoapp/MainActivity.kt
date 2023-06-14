@@ -2,6 +2,7 @@ package xyz.otifik.todoapp
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -26,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,25 +37,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navOptions
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.PersistentList
 import xyz.otifik.todoapp.compose.InspirationContent
 import xyz.otifik.todoapp.compose.ToDoContent
+import xyz.otifik.todoapp.compose.TodoAddContent
 import xyz.otifik.todoapp.compose.TomatoContent
 import xyz.otifik.todoapp.model.Todo
 import xyz.otifik.todoapp.repository.serializer.TodoAppDataSerializer
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
 
-val Context.datastore by dataStore("todo-app-data.json",TodoAppDataSerializer)
+val Context.datastore by dataStore("todo-app-data.json", TodoAppDataSerializer)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -79,7 +86,10 @@ class MainActivity : ComponentActivity() {
                 ),
             )
 
+            var showFloatingActionButton by remember { mutableStateOf(true) }
+
             var selectedItem: Screen by remember { mutableStateOf(Screen.Todo) }
+
 
             ToDoAppTheme {
                 // A surface container using the 'background' color from the theme
@@ -88,7 +98,7 @@ class MainActivity : ComponentActivity() {
 
                         //FloatingActionButton 隐藏动画
                         AnimatedVisibility(
-                            visible = selectedItem.title == Screen.Todo.title || selectedItem.title == Screen.Inspiration.title,
+                            visible = showFloatingActionButton,
                             enter = fadeIn(),
                             exit = fadeOut(),
                             modifier = Modifier
@@ -106,7 +116,17 @@ class MainActivity : ComponentActivity() {
                                 FloatingActionButton(
                                     onClick = {
                                         when (selectedItem.title) {
+                                            Screen.Todo.title -> {
+                                                navController.navigate(RouteConfig.ROUTE_TODO_ADD){
+                                                    launchSingleTop = true
+                                                }
 
+                                                showFloatingActionButton = false
+                                            }
+
+                                            Screen.Inspiration.title -> {
+
+                                            }
                                         }
                                     },
                                     content = {
@@ -141,10 +161,18 @@ class MainActivity : ComponentActivity() {
                                             else -> selectedItem
                                         }
 
-                                        navController.navigate(item.title, navOptions {
+                                        navController.navigate(
+                                            when (item.title) {
+                                                Screen.Todo.title -> RouteConfig.ROUTE_TODO
+                                                Screen.Inspiration.title -> RouteConfig.ROUTE_INSPIRATION
+                                                Screen.Tomato.title -> RouteConfig.ROUTE_TOMATO
+                                                //多余判断
+                                                else -> RouteConfig.ROUTE_TODO
+                                            }
+                                        ) {
                                             launchSingleTop = true
+                                        }
 
-                                        })
                                     }
                                 )
                             }
@@ -164,16 +192,23 @@ class MainActivity : ComponentActivity() {
                     ) {
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Todo.title
+                            startDestination = RouteConfig.ROUTE_TODO
                         ) {
-                            composable(Screen.Todo.title) {
-                                ToDoContent()
+                            composable(RouteConfig.ROUTE_TODO){
+                                ToDoContent(navController)
+                                showFloatingActionButton = true
                             }
-                            composable(Screen.Inspiration.title) {
-                                InspirationContent()
+                            composable(RouteConfig.ROUTE_TODO_ADD) {
+                                TodoAddContent(navController)
+                                showFloatingActionButton = false
                             }
-                            composable(Screen.Tomato.title) {
-                                TomatoContent()
+                            composable(RouteConfig.ROUTE_INSPIRATION) {
+                                InspirationContent(navController)
+                                showFloatingActionButton = true
+                            }
+                            composable(RouteConfig.ROUTE_TOMATO) {
+                                TomatoContent(navController)
+                                showFloatingActionButton = false
                             }
                         }
 
@@ -183,8 +218,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun setTodoAppData(list: MutableList<Todo>){
-        datastore.updateData {
+    private suspend fun setTodoAppData(context: Context, list: MutableList<Todo>) {
+        context.datastore.updateData {
             it.copy(
                 todoListData = list
             )
