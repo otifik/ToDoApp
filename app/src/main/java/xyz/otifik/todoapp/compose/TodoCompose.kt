@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import xyz.otifik.todoapp.R
 import xyz.otifik.todoapp.RouteConfig
 import xyz.otifik.todoapp.TodoAppData
@@ -77,6 +79,7 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
 
     var todoContent by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
 
 
     val calendar = Calendar.getInstance()
@@ -84,7 +87,18 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
     val initMonth = calendar.get(Calendar.MONTH) + 1
     val initDay = calendar.get(Calendar.DAY_OF_MONTH)
 
-    var todoDate by remember { mutableStateOf("${initYear}-${initMonth}-${initDay}") }
+    var todoDate by remember {
+        mutableStateOf(
+            String.format(
+                "%4d-%02d-%02d",
+                initYear,
+                initMonth,
+                initDay
+            )
+        )
+    }
+
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -105,7 +119,7 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                     DatePickerDialog(
                         navController.context,
                         { view, year, month, dayOfMonth ->
-                            todoDate = "$year-${month}-$dayOfMonth"
+                            todoDate = String.format(Locale.CHINA,"%4d-%02d-%02d", year, month+1, dayOfMonth)
                         },
                         initYear,
                         initMonth,
@@ -116,7 +130,8 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
 
         ) {
             Text(
-                text = todoDate, modifier = Modifier.align(Alignment.Center), fontSize = 25.sp,)
+                text = todoDate, modifier = Modifier.align(Alignment.Center), fontSize = 25.sp,
+            )
         }
 
 
@@ -139,11 +154,27 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
             shape = RoundedCornerShape(5.dp)
         )
 
-        Button(onClick = { /*TODO*/ }, modifier = Modifier
-            .padding(start = 10.dp, end = 10.dp)
-            .fillMaxWidth(), content =  {
+        Button(
+            onClick = {
+                val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
+                Log.d("TodoApp", todoDate)
+                val date = simpleDateFormat.parse(todoDate)
+                Log.d("TodoApp", date.toString())
+                //强制不为空
+                val time = date!!.time
+                val todo = Todo(time, todoContent)
+                scope.launch {
+                    context.datastore.updateData {
+                        it.copy(todoListData = it.todoListData + todo)
+                    }
+                }
+                navController.popBackStack()
+            },
+            modifier = Modifier
+                .padding(start = 10.dp, end = 10.dp)
+                .fillMaxWidth(), content = {
                 Text(text = "Add")
-        })
+            })
     }
 }
 

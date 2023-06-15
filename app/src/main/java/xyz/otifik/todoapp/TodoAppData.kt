@@ -7,5 +7,5 @@ import xyz.otifik.todoapp.model.Todo
 
 @Serializable
 data class TodoAppData(
-    val todoListData: MutableList<Todo> = mutableListOf()
+    val todoListData: List<Todo> = mutableListOf()
 )
