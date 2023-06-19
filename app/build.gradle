@@ -75,12 +75,19 @@ dependencies {
     implementation "androidx.navigation:navigation-compose:$nav_version"
     implementation "com.google.dagger:hilt-android:2.44"
     kapt "com.google.dagger:hilt-compiler:2.44"
-    implementation "androidx.datastore:datastore-preferences:1.0.0"
+    implementation "androidx.datastore:datastore:1.0.0"
 //    implementation  "com.google.protobuf:protobuf-javalite:3.18.0"
     implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1"
 //    implementation "com.github.Fanketly:accompanist:0.30"
 //    implementation 'com.github.Fanketly:accompanist:0.2'
+
+    def room_version = "2.5.0"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+    // To use Kotlin annotation processing tool (kapt)
+    kapt "androidx.room:room-compiler:$room_version"
 }
 
 kapt {

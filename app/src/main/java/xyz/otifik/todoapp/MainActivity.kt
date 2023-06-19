@@ -48,18 +48,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navOptions
+import androidx.room.Room
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.collections.immutable.PersistentList
 import xyz.otifik.todoapp.compose.InspirationContent
 import xyz.otifik.todoapp.compose.ToDoContent
 import xyz.otifik.todoapp.compose.TodoAddContent
 import xyz.otifik.todoapp.compose.TomatoContent
-import xyz.otifik.todoapp.model.Todo
+import xyz.otifik.todoapp.repository.AppDatabase
+import xyz.otifik.todoapp.repository.model.Todo
 import xyz.otifik.todoapp.repository.serializer.TodoAppDataSerializer
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
 
 val Context.datastore by dataStore("todo-app-data.json", TodoAppDataSerializer)
+
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -218,13 +222,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun setTodoAppData(context: Context, list: MutableList<Todo>) {
-        context.datastore.updateData {
-            it.copy(
-                todoListData = list
-            )
-        }
-    }
 }
 
 data class BottomNavItem(

@@ -1,4 +1,4 @@
-package xyz.otifik.todoapp.model
+package xyz.otifik.todoapp.repository.model
 
 import kotlinx.serialization.Serializable
 

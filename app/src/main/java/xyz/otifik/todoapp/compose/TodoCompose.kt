@@ -18,10 +18,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.rememberDismissState
+import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,17 +42,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.room.Room
 import kotlinx.coroutines.launch
 import xyz.otifik.todoapp.R
 import xyz.otifik.todoapp.RouteConfig
 import xyz.otifik.todoapp.TodoAppData
 import xyz.otifik.todoapp.datastore
-import xyz.otifik.todoapp.model.Todo
+import xyz.otifik.todoapp.repository.AppDatabase
+import xyz.otifik.todoapp.repository.model.Todo
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -58,6 +70,7 @@ fun ToDoContent(navController: NavController) {
         LocalContext.current.datastore.data.collectAsState(initial = TodoAppData()).value.todoListData
 
 
+
 //    BackHandler(enabled = true) {
 //
 //    }
@@ -65,7 +78,7 @@ fun ToDoContent(navController: NavController) {
     LazyColumn(content = {
         item {
             for (t in todoListData) {
-                TodoItem(t.timeStamp, t.todoContent)
+                TodoItem(t)
             }
         }
     })
@@ -119,18 +132,28 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                     DatePickerDialog(
                         navController.context,
                         { view, year, month, dayOfMonth ->
-                            todoDate = String.format(Locale.CHINA,"%4d-%02d-%02d", year, month+1, dayOfMonth)
+                            todoDate = String.format(
+                                Locale.CHINA,
+                                "%4d-%02d-%02d",
+                                year,
+                                month + 1,
+                                dayOfMonth
+                            )
                         },
                         initYear,
                         initMonth,
                         initDay
                     ).show()
-                }
-
-
+                },
+            contentAlignment = Alignment.Center
         ) {
             Text(
-                text = todoDate, modifier = Modifier.align(Alignment.Center), fontSize = 25.sp,
+                text = todoDate,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                fontSize = 25.sp,
             )
         }
 
@@ -165,7 +188,7 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                 val todo = Todo(time, todoContent)
                 scope.launch {
                     context.datastore.updateData {
-                        it.copy(todoListData = it.todoListData + todo)
+                        it.copy(todoListData = (it.todoListData + todo).toMutableList())
                     }
                 }
                 navController.popBackStack()
@@ -178,52 +201,89 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 @Preview
-fun TodoItem(timeStamp: Long = 0, todoContent: String = "TodoContent") {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 5.dp)
-            .height(150.dp)
-            .shadow(2.dp, shape = RoundedCornerShape(10.dp))
-            .background(color = Color.White)
+fun TodoItem(t: Todo = Todo(System.currentTimeMillis(), "test")) {
 
 
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    fontSize = 20.sp,
-                    text = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(timeStamp),
-                    modifier = Modifier.padding(start = 10.dp)
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .padding(top = 10.dp)
-                    .fillMaxWidth()
-                    .height(100.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    fontSize = 18.sp,
-                    text = todoContent,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight()
-                        .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)
-                )
+    val dismissState = rememberDismissState()
+
+    val scope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+
+    if (dismissState.currentValue == DismissValue.DismissedToEnd) {
+        LaunchedEffect(Unit) {
+            scope.launch {
+                context.datastore.updateData {
+                    it.copy(todoListData = it.todoListData.apply {
+                        remove(t)
+                    })
+                }
             }
         }
     }
+
+    SwipeToDismiss(
+        state = dismissState,
+        background = { Icons.Filled.Delete },
+        directions = remember {
+            setOf(DismissDirection.StartToEnd)
+        },
+        dismissContent = {
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 5.dp)
+                    .height(150.dp)
+                    .shadow(2.dp, shape = RoundedCornerShape(10.dp))
+                    .background(color = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            fontSize = 20.sp,
+                            text = SimpleDateFormat(
+                                "yyyy-MM-dd",
+                                Locale.CHINA
+                            ).format(t.timeStamp),
+                            modifier = Modifier.padding(start = 10.dp)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            fontSize = 18.sp,
+                            text = t.todoContent,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                                .padding(
+                                    start = 10.dp,
+                                    end = 10.dp,
+                                    top = 10.dp,
+                                    bottom = 10.dp
+                                )
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
