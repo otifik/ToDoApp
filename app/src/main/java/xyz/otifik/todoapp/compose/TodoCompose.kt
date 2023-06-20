@@ -53,8 +53,8 @@ import kotlinx.coroutines.launch
 import xyz.otifik.todoapp.R
 import xyz.otifik.todoapp.RouteConfig
 import xyz.otifik.todoapp.TodoAppData
-import xyz.otifik.todoapp.datastore
 import xyz.otifik.todoapp.repository.AppDatabase
+import xyz.otifik.todoapp.repository.entity.TodoEntity
 import xyz.otifik.todoapp.repository.model.Todo
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
 import java.text.DateFormat
@@ -66,19 +66,18 @@ import java.util.Locale
 //@Preview
 fun ToDoContent(navController: NavController) {
 
-    val todoListData =
-        LocalContext.current.datastore.data.collectAsState(initial = TodoAppData()).value.todoListData
+//    val todoListData = LocalContext.current.datastore.data.collectAsState(initial = TodoAppData()).value.todoListData
+
+    val list = AppDatabase.getInstance(LocalContext.current).todoDao().getUndeletedAll()
+        .collectAsState(initial = emptyList()).value
 
 
-
-//    BackHandler(enabled = true) {
-//
-//    }
-
+    //https://medium.com/mobile-app-development-publication/jetpack-compose-swipe-to-dismiss-made-easy-323ca80a0355
     LazyColumn(content = {
         item {
-            for (t in todoListData) {
+            for (t in list) {
                 TodoItem(t)
+                Log.d("todo", "item: $t")
             }
         }
     })
@@ -183,13 +182,19 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                 Log.d("TodoApp", todoDate)
                 val date = simpleDateFormat.parse(todoDate)
                 Log.d("TodoApp", date.toString())
+                val createTimestamp = System.currentTimeMillis()
                 //强制不为空
                 val time = date!!.time
-                val todo = Todo(time, todoContent)
+                val todo = TodoEntity(
+                    id = 0,
+                    createTimestamp = createTimestamp,
+                    todoTimestamp = time,
+                    todoContent = todoContent,
+                    isCompleted = false,
+                    isDeleted = false
+                )
                 scope.launch {
-                    context.datastore.updateData {
-                        it.copy(todoListData = (it.todoListData + todo).toMutableList())
-                    }
+                    AppDatabase.getInstance(context).todoDao().insert(todo)
                 }
                 navController.popBackStack()
             },
@@ -204,7 +209,16 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 @Preview
-fun TodoItem(t: Todo = Todo(System.currentTimeMillis(), "test")) {
+fun TodoItem(
+    t: TodoEntity = TodoEntity(
+        id = 0,
+        createTimestamp = 0,
+        todoTimestamp = 0,
+        todoContent = "TEST",
+        isCompleted = false,
+        isDeleted = false
+    )
+) {
 
 
     val dismissState = rememberDismissState()
@@ -216,11 +230,7 @@ fun TodoItem(t: Todo = Todo(System.currentTimeMillis(), "test")) {
     if (dismissState.currentValue == DismissValue.DismissedToEnd) {
         LaunchedEffect(Unit) {
             scope.launch {
-                context.datastore.updateData {
-                    it.copy(todoListData = it.todoListData.apply {
-                        remove(t)
-                    })
-                }
+                AppDatabase.getInstance(context).todoDao().update(t.copy(isCompleted = true))
             }
         }
     }
@@ -239,7 +249,7 @@ fun TodoItem(t: Todo = Todo(System.currentTimeMillis(), "test")) {
                     .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 5.dp)
                     .height(150.dp)
                     .shadow(2.dp, shape = RoundedCornerShape(10.dp))
-                    .background(color = Color.White)
+                    .background(color = if (t.isCompleted) Color.LightGray else Color.White)
             ) {
                 Column(
                     modifier = Modifier
@@ -257,7 +267,7 @@ fun TodoItem(t: Todo = Todo(System.currentTimeMillis(), "test")) {
                             text = SimpleDateFormat(
                                 "yyyy-MM-dd",
                                 Locale.CHINA
-                            ).format(t.timeStamp),
+                            ).format(t.todoTimestamp),
                             modifier = Modifier.padding(start = 10.dp)
                         )
                     }

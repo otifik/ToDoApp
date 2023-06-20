@@ -57,13 +57,8 @@ import xyz.otifik.todoapp.compose.TodoAddContent
 import xyz.otifik.todoapp.compose.TomatoContent
 import xyz.otifik.todoapp.repository.AppDatabase
 import xyz.otifik.todoapp.repository.model.Todo
-import xyz.otifik.todoapp.repository.serializer.TodoAppDataSerializer
 import xyz.otifik.todoapp.ui.theme.ToDoAppTheme
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
-
-val Context.datastore by dataStore("todo-app-data.json", TodoAppDataSerializer)
-
-
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
