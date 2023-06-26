@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -61,31 +61,32 @@ import java.util.Locale
 //@Preview
 fun ToDoContent(navController: NavController, todoViewModel: TodoViewModel) {
 
-//    val todoListData = LocalContext.current.datastore.data.collectAsState(initial = TodoAppData()).value.todoListData
-
     val context = LocalContext.current
 
-//    val list = todoViewModel.getUndeletedTodos().collectAsState(initial = emptyList())
+    val list = todoViewModel.getUndeletedTodos().collectAsState(initial = emptyList())
 
-    val listUndone = todoViewModel.getDoneTodos().collectAsState(initial = emptyList())
+//    val listDone = todoViewModel.getDoneTodos().collectAsState(initial = emptyList())
 
-    val listDone = todoViewModel.getUndoneTodos().collectAsState(initial = emptyList())
+//    val listUndone = todoViewModel.getUndoneTodos().collectAsState(initial = emptyList())
 
     //https://medium.com/mobile-app-development-publication/jetpack-compose-swipe-to-dismiss-made-easy-323ca80a0355
-    val lazyListStateUndone = rememberLazyListState()
+    val lazyListState = rememberLazyListState()
 
-    val lazyListStateDone = rememberLazyListState()
+//    val lazyListStateUndone = rememberLazyListState()
+//
+//    val lazyListStateDone = rememberLazyListState()
 
     val scope = rememberCoroutineScope()
 
+    //todo:待解决动画问题
     Column(modifier = Modifier.fillMaxSize()) {
         //ListUndone
         LazyColumn(
-            modifier = Modifier.wrapContentSize(),
-            state = lazyListStateUndone
+            modifier = Modifier.fillMaxSize(),
+            state = lazyListState
         ) {
             items(
-                items = listUndone.value,
+                items = list.value.sortedBy { it.createTimestamp }.sortedBy { it.isDone },
                 key = { it.id },
                 itemContent = { todo ->
                     //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
@@ -103,9 +104,16 @@ fun ToDoContent(navController: NavController, todoViewModel: TodoViewModel) {
                                 }
 
                                 DismissValue.DismissedToEnd -> {
-                                    scope.launch {
-                                        AppDatabase.getInstance(context).todoDao()
-                                            .update(currentItem.copy(isDone = true))
+                                    if (!todo.isDone) {
+                                        scope.launch {
+                                            AppDatabase.getInstance(context).todoDao()
+                                                .update(currentItem.copy(isDone = true))
+                                        }
+                                    } else {
+                                        scope.launch {
+                                            AppDatabase.getInstance(context).todoDao()
+                                                .update(currentItem.copy(isDone = false))
+                                        }
                                     }
                                     true
                                 }
@@ -123,66 +131,10 @@ fun ToDoContent(navController: NavController, todoViewModel: TodoViewModel) {
                                 isDone = todo.isDone
                             )
                         },
-                        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart),
-                        dismissThresholds = { FractionalThreshold(0.3f) },
-                        modifier = Modifier.animateItemPlacement()
-                    ) {
-
-                        TodoItem(todo)
-
-                    }
-
-                }
-
-            )
-
-        }
-
-        //ListDone
-        LazyColumn(
-            modifier = Modifier.wrapContentSize(),
-            state = lazyListStateDone
-        ) {
-            items(
-                items = listDone.value,
-                key = { it.id },
-                itemContent = { todo ->
-                    //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
-                    val currentItem by rememberUpdatedState(newValue = todo)
-
-                    val dismissState = rememberDismissState(
-                        confirmStateChange = {
-                            when (it) {
-                                DismissValue.DismissedToStart -> {
-                                    scope.launch {
-                                        AppDatabase.getInstance(context).todoDao()
-                                            .update(currentItem.copy(isDeleted = true))
-                                    }
-                                    true
-                                }
-
-                                DismissValue.DismissedToEnd -> {
-                                    scope.launch {
-                                        AppDatabase.getInstance(context).todoDao()
-                                            .update(currentItem.copy(isDone = false))
-                                    }
-                                    true
-                                }
-
-                                else -> false
-                            }
-                        }
-                    )
-
-                    SwipeToDismiss(
-                        state = dismissState,
-                        background = {
-                            SwipeBackground(
-                                dismissState = dismissState,
-                                isDone = todo.isDone
-                            )
-                        },
-                        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart),
+                        directions = setOf(
+                            DismissDirection.StartToEnd,
+                            DismissDirection.EndToStart
+                        ),
                         dismissThresholds = { FractionalThreshold(0.3f) },
                         modifier = Modifier.animateItemPlacement()
                     ) {
@@ -197,6 +149,145 @@ fun ToDoContent(navController: NavController, todoViewModel: TodoViewModel) {
 
         }
     }
+
+
+//    Column(modifier = Modifier.fillMaxSize()) {
+//        //ListUndone
+//        LazyColumn(
+//            modifier = Modifier.wrapContentSize(),
+//            state = lazyListStateUndone
+//        ) {
+//            items(
+//                items = listUndone.value,
+//                key = { it.id },
+//                itemContent = { todo ->
+//                    //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
+//                    val currentItem by rememberUpdatedState(newValue = todo)
+//
+//                    val dismissState = rememberDismissState(
+//                        confirmStateChange = {
+//                            when (it) {
+//                                DismissValue.DismissedToStart -> {
+//                                    scope.launch {
+//                                        AppDatabase.getInstance(context).todoDao()
+//                                            .update(currentItem.copy(isDeleted = true))
+//                                    }
+//                                    true
+//                                }
+//
+//                                DismissValue.DismissedToEnd -> {
+//                                    if (!todo.isDone) {
+//                                        scope.launch {
+//                                            AppDatabase.getInstance(context).todoDao()
+//                                                .update(currentItem.copy(isDone = true))
+//                                        }
+//                                    } else {
+//                                        scope.launch {
+//                                            AppDatabase.getInstance(context).todoDao()
+//                                                .update(currentItem.copy(isDone = false))
+//                                        }
+//                                    }
+//                                    true
+//                                }
+//
+//                                else -> false
+//                            }
+//                        }
+//                    )
+//
+//                    SwipeToDismiss(
+//                        state = dismissState,
+//                        background = {
+//                            SwipeBackground(
+//                                dismissState = dismissState,
+//                                isDone = todo.isDone
+//                            )
+//                        },
+//                        directions = setOf(
+//                            DismissDirection.StartToEnd,
+//                            DismissDirection.EndToStart
+//                        ),
+//                        dismissThresholds = { FractionalThreshold(0.3f) },
+//                        modifier = Modifier.animateItemPlacement()
+//                    ) {
+//
+//                        TodoItem(todo)
+//
+//                    }
+//
+//                }
+//
+//            )
+//
+//        }
+//
+//        //ListDone
+//        LazyColumn(
+//            modifier = Modifier.wrapContentSize(),
+//            state = lazyListStateDone
+//        ) {
+//            items(
+//                items = listDone.value,
+//                key = { it.id },
+//                itemContent = { todo ->
+//                    //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
+//                    val currentItem by rememberUpdatedState(newValue = todo)
+//
+//                    val dismissState = rememberDismissState(
+//                        confirmStateChange = {
+//                            when (it) {
+//                                DismissValue.DismissedToStart -> {
+//                                    Log.d("test", "DismissedToStart")
+//                                    scope.launch {
+//                                        AppDatabase.getInstance(context).todoDao()
+//                                            .update(currentItem.copy(isDeleted = true))
+//                                    }
+//                                    true
+//                                }
+//
+//                                DismissValue.DismissedToEnd -> {
+//                                    Log.d("test", "DismissedToEnd")
+//                                    scope.launch {
+//                                        AppDatabase.getInstance(context).todoDao()
+//                                            .update(currentItem.copy(isDone = false))
+//                                    }
+//                                    true
+//                                }
+//
+//                                else -> {
+//                                    Log.d("test", "false")
+//                                    false
+//                                }
+//                            }
+//                        }
+//                    )
+//
+//                    SwipeToDismiss(
+//                        state = dismissState,
+//                        background = {
+//                            SwipeBackground(
+//                                dismissState = dismissState,
+//                                isDone = todo.isDone
+//                            )
+//                        },
+//                        directions = setOf(
+//                            DismissDirection.StartToEnd,
+//                            DismissDirection.EndToStart
+//                        ),
+//                        dismissThresholds = { FractionalThreshold(0.3f) },
+//                        modifier = Modifier.animateItemPlacement()
+//                    ) {
+//
+//                        TodoItem(todo)
+//
+//                    }
+//
+//                }
+//
+//            )
+//
+//        }
+//    }
 
 
 }
@@ -289,7 +380,8 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                 .fillMaxWidth()
                 .padding(10.dp)
                 .height(400.dp),
-            shape = RoundedCornerShape(5.dp)
+            shape = RoundedCornerShape(5.dp),
+            textStyle = TextStyle.Default.copy(fontSize = 20.sp)
         )
 
         Button(

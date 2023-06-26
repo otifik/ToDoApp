@@ -14,6 +14,9 @@ interface TodoDao {
     @Query("SELECT * FROM todo")
     fun getAll(): Flow<List<TodoEntity>>
 
+    @Query("SELECT * FROM todo WHERE is_deleted = 0")
+    fun getUndeletedAll(): Flow<List<TodoEntity>>
+
     @Query("SELECT * FROM todo WHERE is_done = 1 AND is_deleted = 0")
     fun getDoneAll(): Flow<List<TodoEntity>>
 

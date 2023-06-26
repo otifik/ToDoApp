@@ -2,7 +2,6 @@ package xyz.otifik.todoapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import xyz.otifik.todoapp.TodoApplication
 import xyz.otifik.todoapp.repository.AppDatabase
 import xyz.otifik.todoapp.repository.entity.TodoEntity
@@ -15,7 +14,7 @@ class TodoViewModel(): ViewModel() {
 
     fun getTodos(): Flow<List<TodoEntity>> = todoDao.getAll()
 
-    fun getUndeletedTodos(): Flow<List<TodoEntity>> = getTodos().filter { (_,value) -> !value.isDeleted }
+    fun getUndeletedTodos(): Flow<List<TodoEntity>> = todoDao.getUndeletedAll()
 
     fun getUndoneTodos(): Flow<List<TodoEntity>> = todoDao.getUndoneAll()
 
