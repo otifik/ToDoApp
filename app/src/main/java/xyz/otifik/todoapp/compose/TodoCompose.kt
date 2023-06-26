@@ -2,9 +2,7 @@ package xyz.otifik.todoapp.compose
 
 import android.app.DatePickerDialog
 import android.util.Log
-import android.widget.DatePicker
-import androidx.activity.compose.BackHandler
-import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,30 +10,32 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.rememberDismissState
-import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,41 +46,157 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.room.Room
 import kotlinx.coroutines.launch
-import xyz.otifik.todoapp.R
-import xyz.otifik.todoapp.RouteConfig
-import xyz.otifik.todoapp.TodoAppData
+import xyz.otifik.todoapp.compose.util.SwipeBackground
 import xyz.otifik.todoapp.repository.AppDatabase
 import xyz.otifik.todoapp.repository.entity.TodoEntity
-import xyz.otifik.todoapp.repository.model.Todo
 import xyz.otifik.todoapp.viewmodel.TodoViewModel
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
 //@Preview
-fun ToDoContent(navController: NavController) {
+fun ToDoContent(navController: NavController, todoViewModel: TodoViewModel) {
 
 //    val todoListData = LocalContext.current.datastore.data.collectAsState(initial = TodoAppData()).value.todoListData
 
-    val list = AppDatabase.getInstance(LocalContext.current).todoDao().getUndeletedAll()
-        .collectAsState(initial = emptyList()).value
+    val context = LocalContext.current
 
+//    val list = todoViewModel.getUndeletedTodos().collectAsState(initial = emptyList())
+
+    val listUndone = todoViewModel.getDoneTodos().collectAsState(initial = emptyList())
+
+    val listDone = todoViewModel.getUndoneTodos().collectAsState(initial = emptyList())
 
     //https://medium.com/mobile-app-development-publication/jetpack-compose-swipe-to-dismiss-made-easy-323ca80a0355
-    LazyColumn(content = {
-        item {
-            for (t in list) {
-                TodoItem(t)
-                Log.d("todo", "item: $t")
-            }
+    val lazyListStateUndone = rememberLazyListState()
+
+    val lazyListStateDone = rememberLazyListState()
+
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        //ListUndone
+        LazyColumn(
+            modifier = Modifier.wrapContentSize(),
+            state = lazyListStateUndone
+        ) {
+            items(
+                items = listUndone.value,
+                key = { it.id },
+                itemContent = { todo ->
+                    //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
+                    val currentItem by rememberUpdatedState(newValue = todo)
+
+                    val dismissState = rememberDismissState(
+                        confirmStateChange = {
+                            when (it) {
+                                DismissValue.DismissedToStart -> {
+                                    scope.launch {
+                                        AppDatabase.getInstance(context).todoDao()
+                                            .update(currentItem.copy(isDeleted = true))
+                                    }
+                                    true
+                                }
+
+                                DismissValue.DismissedToEnd -> {
+                                    scope.launch {
+                                        AppDatabase.getInstance(context).todoDao()
+                                            .update(currentItem.copy(isDone = true))
+                                    }
+                                    true
+                                }
+
+                                else -> false
+                            }
+                        }
+                    )
+
+                    SwipeToDismiss(
+                        state = dismissState,
+                        background = {
+                            SwipeBackground(
+                                dismissState = dismissState,
+                                isDone = todo.isDone
+                            )
+                        },
+                        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart),
+                        dismissThresholds = { FractionalThreshold(0.3f) },
+                        modifier = Modifier.animateItemPlacement()
+                    ) {
+
+                        TodoItem(todo)
+
+                    }
+
+                }
+
+            )
+
         }
-    })
+
+        //ListDone
+        LazyColumn(
+            modifier = Modifier.wrapContentSize(),
+            state = lazyListStateDone
+        ) {
+            items(
+                items = listDone.value,
+                key = { it.id },
+                itemContent = { todo ->
+                    //如果不是rememberUpdatedState，会出现意想不到的错误 https://stackoverflow.com/questions/75040603/is-composes-swipe-to-dismiss-state-always-remember-the-old-item-based-on-id-ev
+                    val currentItem by rememberUpdatedState(newValue = todo)
+
+                    val dismissState = rememberDismissState(
+                        confirmStateChange = {
+                            when (it) {
+                                DismissValue.DismissedToStart -> {
+                                    scope.launch {
+                                        AppDatabase.getInstance(context).todoDao()
+                                            .update(currentItem.copy(isDeleted = true))
+                                    }
+                                    true
+                                }
+
+                                DismissValue.DismissedToEnd -> {
+                                    scope.launch {
+                                        AppDatabase.getInstance(context).todoDao()
+                                            .update(currentItem.copy(isDone = false))
+                                    }
+                                    true
+                                }
+
+                                else -> false
+                            }
+                        }
+                    )
+
+                    SwipeToDismiss(
+                        state = dismissState,
+                        background = {
+                            SwipeBackground(
+                                dismissState = dismissState,
+                                isDone = todo.isDone
+                            )
+                        },
+                        directions = setOf(DismissDirection.StartToEnd, DismissDirection.EndToStart),
+                        dismissThresholds = { FractionalThreshold(0.3f) },
+                        modifier = Modifier.animateItemPlacement()
+                    ) {
+
+                        TodoItem(todo)
+
+                    }
+
+                }
+
+            )
+
+        }
+    }
 
 
 }
@@ -190,7 +306,7 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                     createTimestamp = createTimestamp,
                     todoTimestamp = time,
                     todoContent = todoContent,
-                    isCompleted = false,
+                    isDone = false,
                     isDeleted = false
                 )
                 scope.launch {
@@ -215,85 +331,60 @@ fun TodoItem(
         createTimestamp = 0,
         todoTimestamp = 0,
         todoContent = "TEST",
-        isCompleted = false,
+        isDone = false,
         isDeleted = false
     )
 ) {
 
-
-    val dismissState = rememberDismissState()
-
-    val scope = rememberCoroutineScope()
-
-    val context = LocalContext.current
-
-    if (dismissState.currentValue == DismissValue.DismissedToEnd) {
-        LaunchedEffect(Unit) {
-            scope.launch {
-                AppDatabase.getInstance(context).todoDao().update(t.copy(isCompleted = true))
-            }
-        }
-    }
-
-    SwipeToDismiss(
-        state = dismissState,
-        background = { Icons.Filled.Delete },
-        directions = remember {
-            setOf(DismissDirection.StartToEnd)
-        },
-        dismissContent = {
-
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)
+            .height(150.dp)
+            .shadow(2.dp, shape = RoundedCornerShape(10.dp))
+            .background(color = if (t.isDone) Color.LightGray else Color.White)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+        ) {
             Row(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 5.dp)
-                    .height(150.dp)
-                    .shadow(2.dp, shape = RoundedCornerShape(10.dp))
-                    .background(color = if (t.isCompleted) Color.LightGray else Color.White)
+                    .height(40.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
+                Text(
+                    fontSize = 20.sp,
+                    text = SimpleDateFormat(
+                        "yyyy-MM-dd",
+                        Locale.CHINA
+                    ).format(t.todoTimestamp),
+                    modifier = Modifier.padding(start = 10.dp)
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .fillMaxWidth()
+                    .height(100.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    fontSize = 18.sp,
+                    text = t.todoContent,
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            fontSize = 20.sp,
-                            text = SimpleDateFormat(
-                                "yyyy-MM-dd",
-                                Locale.CHINA
-                            ).format(t.todoTimestamp),
-                            modifier = Modifier.padding(start = 10.dp)
+                        .padding(
+                            start = 10.dp,
+                            end = 10.dp,
+                            top = 10.dp,
+                            bottom = 10.dp
                         )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .padding(top = 10.dp)
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            fontSize = 18.sp,
-                            text = t.todoContent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight()
-                                .padding(
-                                    start = 10.dp,
-                                    end = 10.dp,
-                                    top = 10.dp,
-                                    bottom = 10.dp
-                                )
-                        )
-                    }
-                }
+                )
             }
         }
-    )
+    }
 }

@@ -10,6 +10,6 @@ data class TodoEntity(
     @ColumnInfo(name = "create_timestamp") val createTimestamp: Long,
     @ColumnInfo(name = "todo_timestamp") val todoTimestamp: Long,
     @ColumnInfo(name = "todo_content") val todoContent: String,
-    @ColumnInfo(name = "is_completed") val isCompleted: Boolean,
+    @ColumnInfo(name = "is_done") val isDone: Boolean,
     @ColumnInfo(name = "is_deleted") val isDeleted: Boolean,
 )

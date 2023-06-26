@@ -2,22 +2,29 @@ package xyz.otifik.todoapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import xyz.otifik.todoapp.TodoApplication
 import xyz.otifik.todoapp.repository.AppDatabase
-import xyz.otifik.todoapp.repository.dao.TodoDao
 import xyz.otifik.todoapp.repository.entity.TodoEntity
-import xyz.otifik.todoapp.repository.model.Todo
 
-class TodoViewModel(private val db: TodoDao): ViewModel() {
+class TodoViewModel(): ViewModel() {
 
-    fun getTodos(): Flow<List<TodoEntity>> = db.getAll()
+    private val db = AppDatabase.getInstance(TodoApplication.getContext())
 
-    fun getUndeletedTodos(): Flow<List<TodoEntity>> = db.getUndeletedAll()
+    private val todoDao = db.todoDao()
 
-    suspend fun insertTodo(todoEntity: TodoEntity) = db.insert(todoEntity)
+    fun getTodos(): Flow<List<TodoEntity>> = todoDao.getAll()
 
-    suspend fun updateTodo(todoEntity: TodoEntity) = db.update(todoEntity)
+    fun getUndeletedTodos(): Flow<List<TodoEntity>> = getTodos().filter { (_,value) -> !value.isDeleted }
 
-    suspend fun deleteTodo(todoEntity: TodoEntity) = db.delete(todoEntity)
+    fun getUndoneTodos(): Flow<List<TodoEntity>> = todoDao.getUndoneAll()
+
+    fun getDoneTodos(): Flow<List<TodoEntity>> = todoDao.getDoneAll()
+
+    suspend fun insertTodo(todoEntity: TodoEntity) = todoDao.insert(todoEntity)
+
+    suspend fun updateTodo(todoEntity: TodoEntity) = todoDao.update(todoEntity)
+
+    suspend fun deleteTodo(todoEntity: TodoEntity) = todoDao.delete(todoEntity)
 
 }
