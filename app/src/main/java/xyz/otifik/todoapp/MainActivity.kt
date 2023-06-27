@@ -189,7 +189,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(RouteConfig.ROUTE_INSPIRATION) {
                                 InspirationContent(navController)
-                                showFloatingActionButton = true
+                                showFloatingActionButton = false
                             }
                             composable(RouteConfig.ROUTE_TOMATO) {
                                 TomatoContent(navController)
