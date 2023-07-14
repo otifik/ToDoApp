@@ -347,7 +347,7 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
                             )
                         },
                         initYear,
-                        initMonth,
+                        initMonth - 1,
                         initDay
                     ).show()
                 },
@@ -408,7 +408,8 @@ fun TodoAddContent(navController: NavController = NavController(LocalContext.cur
             },
             modifier = Modifier
                 .padding(start = 10.dp, end = 10.dp)
-                .fillMaxWidth(), content = {
+                .fillMaxWidth(),
+            content = {
                 Text(text = "Add")
             })
     }

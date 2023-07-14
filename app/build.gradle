@@ -89,6 +89,11 @@ dependencies {
     implementation "androidx.room:room-ktx:$room_version"
     // To use Kotlin annotation processing tool (kapt)
     kapt "androidx.room:room-compiler:$room_version"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0" // 协程(版本自定)
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0'
+
+    implementation 'com.github.liangjingkanji:Interval:1.0.3'
 }
 
 kapt {
